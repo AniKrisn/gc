@@ -20,4 +20,19 @@ typedef struct sObject {
     };
 } Object;
 
+/* Minimal VM */
+
+#define STACK_MAX 256
+
+typedef struct {
+    Object* stack[STACK_MAX];
+    int stackSize;
+} VM;
+
+VM* newVM() {
+    VM* vm = malloc(sizeof(VM));
+    vm->stackSize = 0;
+    return vm;
+}
+
 
