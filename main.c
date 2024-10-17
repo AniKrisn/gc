@@ -6,7 +6,9 @@ typedef enum {
 } ObjectType;
 
 typedef struct sObject {
+    unsigned char marked;
     ObjectType type;
+    struct sObject* next;
 
     union {
         /* OBJ_INT */
@@ -21,16 +23,17 @@ typedef struct sObject {
 } Object;
 
 /* Minimal VM */
-
 #define STACK_MAX 256
 
 typedef struct {
+    Object* firstObject;
     Object* stack[STACK_MAX];
     int stackSize;
 } VM;
 
 VM* newVM() {
     VM* vm = malloc(sizeof(VM));
+    vm->firstObject = NULL;
     vm->stackSize = 0;
     return vm;
 }
@@ -48,6 +51,11 @@ Object* pop(VM* vm) {
 Object* newObject(VM* vm, ObjectType type) {
     Object* object = malloc(sizeof(Object));
     object->type = type;
+    object->marked = 0;
+
+    object->next = vm->firstObject;
+    vm->firstObject = object;
+
     return object;
 }
 
@@ -57,7 +65,6 @@ void pushInt(VM *vm, int intValue) {
     push(vm, object);
 }
 
-
 Object* pushPair(VM* vm) {
     Object* object = newObject(vm, OBJ_PAIR);
     object->tail = pop(vm);
@@ -65,4 +72,43 @@ Object* pushPair(VM* vm) {
 
     push(vm, object);
     return object;
+}
+
+
+void mark(Object* object) {
+    // avoid referral-loops causing overflow
+    if (object->marked) return;
+    
+    object->marked = 1;
+
+    if (object->type == OBJ_PAIR) {
+        mark(object->head);
+        mark(object->tail);
+    }
+}
+
+/* Walk the stack and mark all objects recursively */
+void markAll(VM* vm) {
+    for (int i = 0; i < vm->stackSize; i++) {
+        mark(vm->stack[i]);
+    }
+}
+
+/* Sweep through, delete unmarked, if marked unmark */
+void sweep(VM* vm) {
+    Object** object = &vm->firstObject;
+
+    while (*object) {
+
+        if (!(*object)->marked) {
+            Object* unreached = *object; // pointer var to unmarked object 
+            *object = (*object)->next;
+            free(unreached); // remove that object 
+        } 
+        
+        else {
+            (*object)->marked = 0;
+            object = &(*object)->next; // point to next *object
+        }
+    } 
 }
