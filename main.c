@@ -110,7 +110,7 @@ void sweep(VM* vm) {
         
         else {
             (*object)->marked = 0;
-            object = &(*object)->next; // point to next *object
+            object = &((*object)->next); // point to next *object
         }
     } 
 }
@@ -118,7 +118,7 @@ void sweep(VM* vm) {
 // note: easy way to understand the above - look at the LH side.
 // If *object, then that is the object, an item in the graph. If **object, then that is the graph of objects.
 // in the first case, you're assigning the next object to the current object - meaning that the current object gets removed from the graph
-// in the second case, note the order: first (), then ->, then &. So: (*object) derefences Object in graph,
+// in the second case, note the order: first (), then ->, then &. So: (*object) dereferences Object in graph,
 // (*object)->next accesses next field of Object, and &(*object)->next takes the address of the next pointer.
 // so object (with type **Object) now points to the address of the next pointer of the current Object.
 // In effect, this means it moves to the next Obect in the graph   
