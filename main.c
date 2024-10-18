@@ -5,10 +5,11 @@ typedef enum {
     OBJ_PAIR
 } ObjectType;
 
-typedef struct sObject {
+typedef struct Object Object;
+struct Object {
     unsigned char marked;
     ObjectType type;
-    struct sObject* next;
+    Object* next;
 
     union {
         /* OBJ_INT */
@@ -16,20 +17,21 @@ typedef struct sObject {
 
         /* OBJ_PAIR */
         struct {
-            struct sObject* head;
-            struct sObject* tail;
+            Object* head;
+            Object* tail;
         };
     };
-} Object;
+};
 
 /* Minimal VM */
 #define STACK_MAX 256
 
-typedef struct {
+typedef struct VM VM;
+struct VM {
     Object* firstObject;
     Object* stack[STACK_MAX];
     int stackSize;
-} VM;
+};
 
 VM* newVM() {
     VM* vm = malloc(sizeof(VM));
@@ -102,7 +104,7 @@ void sweep(VM* vm) {
 
         if (!(*object)->marked) {
             Object* unreached = *object; // pointer var to unmarked object 
-            *object = (*object)->next;
+            *object = (*object)->next; 
             free(unreached); // remove that object 
         } 
         
@@ -111,4 +113,17 @@ void sweep(VM* vm) {
             object = &(*object)->next; // point to next *object
         }
     } 
+}
+
+// note: easy way to understand the above - look at the LH side.
+// If *object, then that is the object, an item in the graph. If **object, then that is the graph of objects.
+// in the first case, you're assigning the next object to the current object - meaning that the current object gets removed from the graph
+// in the second case, note the order: first (), then ->, then &. So: (*object) derefences Object in graph,
+// (*object)->next accesses next field of Object, and &(*object)->next takes the address of the next pointer.
+// so object (with type **Object) now points to the address of the next pointer of the current Object.
+// In effect, this means it moves to the next Obect in the graph   
+
+void gc(VM* vm) {
+    markALL(vm);
+    sweep(vm);
 }
